@@ -156,7 +156,7 @@ class StatsManager:
             self.stats["fail_count"] += 1
         
         if time_seconds > 0:
-            speed = (size_mb * 8) / time_seconds  # Mbps
+            speed = (size_mb * 8) / time_seconds
             self.stats["avg_speed_mbps"] = (self.stats["avg_speed_mbps"] + speed) / 2
         
         self.save()
@@ -429,7 +429,7 @@ class ReelDownloader:
     def paste_urls(self):
         try:
             clipboard_text = self.root.clipboard_get()
-            urls = re.findall(r'https?://(?:www\.)?instagram\.com/[^/\s"\('<>]+', clipboard_text)
+            urls = re.findall(r'https://(?:www\.)?instagram\.com/[^/\s<>]+', clipboard_text)
             
             if urls:
                 self.queue.extend(urls)
@@ -505,7 +505,7 @@ class ReelDownloader:
             self.log("🌐 No internet, pausing downloads...")
             with self.download_lock:
                 self.active_downloads -= 1
-                self.queue.insert(0, url)  # Re-add to queue
+                self.queue.insert(0, url)
             self.save_queue_backup()
             return
         
@@ -607,7 +607,7 @@ class ReelDownloader:
                 if retry_count < max_retries:
                     self.log(f"⏱️ Timeout, retrying {retry_count}/{max_retries}...")
                     import time
-                    time.sleep(RETRY_DELAY * (2 ** (retry_count - 1)))  # Exponential backoff
+                    time.sleep(RETRY_DELAY * (2 ** (retry_count - 1)))
                 else:
                     self.log(f"❌ Timeout (max retries)")
                     return False, url, shortcode
@@ -682,7 +682,7 @@ class ReelDownloader:
             if self.download_thumbnails_var.get():
                 self._download_thumbnail(post, shortcode, save_dir)
             
-            self.stats.update(True, size_mb, 10)  # Approximate time
+            self.stats.update(True, size_mb, 10)
             return True
 
         except Exception as e:
@@ -979,7 +979,7 @@ History Entries: {len(self.history.history)}
             lines = log_content.split("\n")
             matches = [l for l in lines if query.lower() in l.lower()]
             
-            results_text.insert(tk.END, "\n".join(matches[-20:]))  # Last 20 matches
+            results_text.insert(tk.END, "\n".join(matches[-20:]))
             results_text.config(state="disabled")
 
         ttk.Button(frame, text="🔍 Search", command=search).pack(pady=10)
@@ -995,7 +995,7 @@ History Entries: {len(self.history.history)}
                 f'[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("RDE").Show([Windows.UI.Notifications.ToastNotification]::new([xml]$template))'
             ], capture_output=True)
         except:
-            pass  # Notification system not available
+            pass
 
     def credits(self):
         win = tk.Toplevel(self.root)
