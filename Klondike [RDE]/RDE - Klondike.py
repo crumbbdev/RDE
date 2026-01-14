@@ -20,12 +20,10 @@ APP_AUTHOR = "Orangepeels24"
 APP_DISCORD = "https://discord.gg/RnY4Xk29Nq"
 APP_VERSION = "1.5.0 [Klondike] [UNSTABLE]"
 
-# Rate limiting configuration
 RATE_LIMIT_REQUESTS = 5
-RATE_LIMIT_WINDOW = 60  # seconds
-RETRY_DELAY = 3  # seconds between retries
+RATE_LIMIT_WINDOW = 60
+RETRY_DELAY = 3
 
-# File paths
 HISTORY_FILE = "download_history.json"
 QUEUE_FILE = "queue_backup.json"
 STATS_FILE = "download_stats.json"
@@ -45,7 +43,6 @@ def create_loader():
 
 
 class RateLimiter:
-    """Prevents excessive API requests"""
     def __init__(self, max_requests, time_window):
         self.max_requests = max_requests
         self.time_window = time_window
@@ -55,7 +52,6 @@ class RateLimiter:
     def is_allowed(self):
         with self.lock:
             now = datetime.now()
-            # Remove old requests outside the window
             while self.requests and self.requests[0] < now - timedelta(seconds=self.time_window):
                 self.requests.popleft()
             
@@ -65,7 +61,6 @@ class RateLimiter:
             return False
     
     def wait_if_needed(self):
-        """Wait if rate limit would be exceeded"""
         if not self.is_allowed():
             with self.lock:
                 if self.requests:
@@ -77,7 +72,6 @@ class RateLimiter:
 
 
 class HistoryManager:
-    """Manages download history"""
     def __init__(self, filepath=HISTORY_FILE):
         self.filepath = filepath
         self.history = self.load()
@@ -116,7 +110,6 @@ class HistoryManager:
         self.save()
     
     def export(self):
-        """Export as CSV string"""
         if not self.history:
             return "No history"
         csv = "Shortcode,URL,Timestamp,Success,Type\n"
@@ -126,7 +119,6 @@ class HistoryManager:
 
 
 class StatsManager:
-    """Tracks download statistics"""
     def __init__(self, filepath=STATS_FILE):
         self.filepath = filepath
         self.stats = self.load()
@@ -174,7 +166,6 @@ class StatsManager:
 
 
 def is_internet_connected():
-    """Check if internet is available"""
     try:
         socket.create_connection(("8.8.8.8", 53), timeout=2)
         return True
@@ -209,7 +200,6 @@ class ReelDownloader:
         self.active_downloads = 0
         self.download_lock = threading.Lock()
         
-        # Download preferences
         self.quality_var = tk.StringVar(value="high")
         self.download_images_var = tk.BooleanVar(value=False)
         self.download_thumbnails_var = tk.BooleanVar(value=False)
@@ -218,21 +208,17 @@ class ReelDownloader:
         self.folder_org_var = tk.StringVar(value="flat")
         self.concurrent_limit_var = tk.IntVar(value=4)
         
-        # Managers
         self.history = HistoryManager()
         self.stats = StatsManager()
         
-        # Load queue from backup
         self.load_queue_backup()
 
         self.build_ui()
 
     def configure_theme(self):
-        """Configure modern theme with custom colors"""
         style = ttk.Style()
         style.theme_use("clam")
         
-        # Modern color palette
         bg_color = "#f0f0f0"
         fg_color = "#1a1a1a"
         accent_color = "#0066cc"
@@ -265,7 +251,6 @@ class ReelDownloader:
             pass
 
     def load_logo(self, frame, size=(80, 80)):
-        """Load and display logo if it exists"""
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             logo_path = os.path.join(script_dir, "logo.png")
@@ -275,7 +260,7 @@ class ReelDownloader:
                 img.thumbnail(size, Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(img)
                 logo_label = ttk.Label(frame, image=photo)
-                logo_label.image = photo  # Keep a reference
+                logo_label.image = photo
                 logo_label.pack(side=tk.LEFT, padx=10)
                 return True
         except Exception as e:
@@ -283,7 +268,6 @@ class ReelDownloader:
         return False
 
     def load_queue_backup(self):
-        """Load queue from backup file if exists"""
         try:
             if os.path.exists(QUEUE_FILE):
                 with open(QUEUE_FILE, 'r') as f:
@@ -295,7 +279,6 @@ class ReelDownloader:
             print(f"Failed to load queue backup: {e}")
     
     def save_queue_backup(self):
-        """Save queue to file for crash recovery"""
         try:
             with open(QUEUE_FILE, 'w') as f:
                 json.dump({'queue': self.queue, 'timestamp': datetime.now().isoformat()}, f)
@@ -303,15 +286,12 @@ class ReelDownloader:
             print(f"Failed to save queue backup: {e}")
 
     def build_ui(self):
-        """Build modern, feature-rich UI"""
         style = ttk.Style()
         style.theme_use("clam")
 
-        # Main container
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Header with logo and title
         header = ttk.Frame(main_frame)
         header.pack(fill=tk.X, padx=15, pady=15)
 
@@ -323,14 +303,11 @@ class ReelDownloader:
         ttk.Label(title_frame, text=APP_NAME, font=("Segoe UI", 24, "bold")).pack(anchor="w")
         ttk.Label(title_frame, text=f"Version {APP_VERSION}", font=("Segoe UI", 9), foreground="gray").pack(anchor="w")
 
-        # Separator
         ttk.Separator(main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=15)
 
-        # Content area with scrollable frame
         content = ttk.Frame(main_frame, padding=15)
         content.pack(fill=tk.BOTH, expand=True)
 
-        # URL input section
         url_box = ttk.LabelFrame(content, text="📋 Add Instagram URLs", padding=10)
         url_box.pack(fill=tk.X, pady=10)
 
@@ -345,11 +322,9 @@ class ReelDownloader:
         ttk.Button(url_btns, text="🗑️ Clear", command=lambda: self.url_text.delete("1.0", tk.END)).pack(side=tk.LEFT, padx=5)
         ttk.Button(url_btns, text="👤 User Batch", command=self.user_dialog).pack(side=tk.LEFT, padx=5)
 
-        # Settings section
         settings_frame = ttk.LabelFrame(content, text="⚙️ Settings & Options", padding=10)
         settings_frame.pack(fill=tk.X, pady=10)
 
-        # Path selection
         path_container = ttk.Frame(settings_frame)
         path_container.pack(fill=tk.X, pady=5)
 
@@ -358,7 +333,6 @@ class ReelDownloader:
         ttk.Entry(path_container, textvariable=self.path_var).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         ttk.Button(path_container, text="📁 Browse", command=self.browse).pack(side=tk.LEFT)
 
-        # Quality, organization, and concurrent downloads
         options_container = ttk.Frame(settings_frame)
         options_container.pack(fill=tk.X, pady=5)
 
@@ -376,7 +350,6 @@ class ReelDownloader:
         concurrent_spin = ttk.Spinbox(options_container, from_=1, to=10, textvariable=self.concurrent_limit_var, width=8)
         concurrent_spin.pack(side=tk.LEFT, padx=5)
 
-        # Download options
         options_container2 = ttk.Frame(settings_frame)
         options_container2.pack(fill=tk.X, pady=5)
 
@@ -385,7 +358,6 @@ class ReelDownloader:
         ttk.Checkbutton(options_container2, text="🎵 Extract Audio", variable=self.extract_audio_var).pack(side=tk.LEFT, padx=5)
         ttk.Checkbutton(options_container2, text="🎬 Compress Video", variable=self.compress_video_var).pack(side=tk.LEFT, padx=5)
 
-        # Control buttons
         ctrl_frame = ttk.Frame(content)
         ctrl_frame.pack(fill=tk.X, pady=10)
 
@@ -403,7 +375,6 @@ class ReelDownloader:
         ttk.Button(ctrl_frame, text="🔍 Filter Logs", command=self.filter_logs).pack(side=tk.LEFT, padx=5)
         ttk.Button(ctrl_frame, text="ℹ️ Credits", command=self.credits).pack(side=tk.RIGHT, padx=5)
 
-        # Progress section
         progress_frame = ttk.LabelFrame(content, text="📊 Progress", padding=10)
         progress_frame.pack(fill=tk.X, pady=10)
 
@@ -413,7 +384,6 @@ class ReelDownloader:
         self.progress_label = ttk.Label(progress_frame, text="Ready", font=("Segoe UI", 10))
         self.progress_label.pack(anchor="w")
 
-        # Log section
         log_box = ttk.LabelFrame(content, text="📝 Log", padding=10)
         log_box.pack(fill=tk.BOTH, expand=True, pady=10)
 
@@ -425,7 +395,6 @@ class ReelDownloader:
 
         self.log_text.config(yscrollcommand=scroll.set)
 
-        # Initial log message
         self.log(f"✓ Ready! Using {self.concurrent_limit_var.get()} concurrent downloads")
         if self.queue:
             self.log(f"📥 Restored {len(self.queue)} items from previous session")
@@ -439,7 +408,7 @@ class ReelDownloader:
         )
         self.log_text.see(tk.END)
         self.log_text.config(state="disabled")
-        self.root.update_idletasks()  # Update UI immediately for better responsiveness
+        self.root.update_idletasks()
 
     def add_urls(self):
         urls = [
@@ -458,11 +427,9 @@ class ReelDownloader:
         self.url_text.delete("1.0", tk.END)
 
     def paste_urls(self):
-        """Paste URLs from clipboard"""
         try:
             clipboard_text = self.root.clipboard_get()
-            # Extract Instagram URLs
-            urls = re.findall(r'https?://(?:www\.)?instagram\.com/[^/\s"\'<>]+', clipboard_text)
+            urls = re.findall(r'https?://(?:www\.)?instagram\.com/[^/\s"\('<>]+', clipboard_text)
             
             if urls:
                 self.queue.extend(urls)
@@ -484,7 +451,6 @@ class ReelDownloader:
             messagebox.showerror("Error", "Invalid download path")
             return
         
-        # Check internet connectivity
         if not is_internet_connected():
             messagebox.showerror("Error", "No internet connection detected")
             return
@@ -535,7 +501,6 @@ class ReelDownloader:
             url = self.queue.pop(0)
             self.active_downloads += 1
         
-        # Check internet before download
         if not is_internet_connected():
             self.log("🌐 No internet, pausing downloads...")
             with self.download_lock:
@@ -576,7 +541,6 @@ class ReelDownloader:
         self.log(summary)
         self.progress_label.config(text=summary)
         
-        # Clear backup
         if os.path.exists(QUEUE_FILE):
             os.remove(QUEUE_FILE)
         
@@ -585,18 +549,15 @@ class ReelDownloader:
         else:
             messagebox.showinfo("Complete", f"✓ All {self.completed} files downloaded!")
         
-        # Show notification
         self.show_notification("Download Complete", f"Successfully downloaded {self.completed} items")
 
     def download_reel_manual(self, url):
-        """Download reel with all features: quality, audio, compression, thumbnails"""
         retry_count = 0
         max_retries = 3
         start_time = datetime.now()
         
         while retry_count < max_retries:
             try:
-                # Apply rate limiting
                 wait_time = self.rate_limiter.wait_if_needed()
                 if wait_time > 0:
                     self.log(f"⏳ Rate limited {wait_time:.1f}s...")
@@ -613,7 +574,6 @@ class ReelDownloader:
 
                 shortcode = m.group(2)
                 
-                # Check history
                 if self.history.exists(shortcode):
                     self.log(f"⏭️ Already in history: {shortcode}")
                     return True, url, shortcode
@@ -622,7 +582,6 @@ class ReelDownloader:
                 
                 post = instaloader.Post.from_shortcode(self.loader.context, shortcode)
                 
-                # Handle images
                 if not post.is_video and self.download_images_var.get():
                     result = self._download_image(post, shortcode)
                     if result:
@@ -631,7 +590,6 @@ class ReelDownloader:
                     else:
                         return False, url, shortcode
                 
-                # Handle videos
                 if post.is_video:
                     result = self._download_video(post, shortcode)
                     elapsed = (datetime.now() - start_time).total_seconds()
@@ -678,7 +636,6 @@ class ReelDownloader:
         return False, url, shortcode
 
     def _download_video(self, post, shortcode):
-        """Download video with quality, compression, and audio extraction"""
         try:
             quality = self.quality_var.get()
             
@@ -686,7 +643,6 @@ class ReelDownloader:
                 self.log(f"❌ No video URL: {shortcode}")
                 return False
 
-            # Organize by folder structure
             save_dir = self._get_organized_path(shortcode, "video")
             os.makedirs(save_dir, exist_ok=True)
             
@@ -696,7 +652,6 @@ class ReelDownloader:
                 self.log(f"⏭️ Exists: {shortcode}.mp4")
                 return True
 
-            # Download video
             r = requests.get(post.video_url, stream=True, timeout=30)
             r.raise_for_status()
 
@@ -718,15 +673,12 @@ class ReelDownloader:
             size_mb = downloaded_size / (1024 * 1024)
             self.log(f"✓ Video: {shortcode}.mp4 ({size_mb:.1f}MB)")
             
-            # Compress if enabled
             if self.compress_video_var.get():
                 self._compress_video(filename, shortcode)
             
-            # Extract audio if enabled
             if self.extract_audio_var.get():
                 self._extract_audio(filename, shortcode)
             
-            # Download thumbnail if enabled
             if self.download_thumbnails_var.get():
                 self._download_thumbnail(post, shortcode, save_dir)
             
@@ -739,7 +691,6 @@ class ReelDownloader:
             return False
 
     def _download_image(self, post, shortcode):
-        """Download carousel/image posts"""
         try:
             save_dir = self._get_organized_path(shortcode, "image")
             os.makedirs(save_dir, exist_ok=True)
@@ -793,7 +744,6 @@ class ReelDownloader:
             return False
 
     def _download_thumbnail(self, post, shortcode, save_dir):
-        """Download video thumbnail"""
         try:
             if hasattr(post, 'thumbnail_url') and post.thumbnail_url:
                 thumb_filename = os.path.join(save_dir, f"{shortcode}_thumb.jpg")
@@ -807,7 +757,6 @@ class ReelDownloader:
             self.log(f"⚠️ Thumbnail failed: {e}")
 
     def _compress_video(self, filename, shortcode):
-        """Compress video using ffmpeg"""
         try:
             ffmpeg_path = shutil.which("ffmpeg")
             if not ffmpeg_path:
@@ -833,7 +782,6 @@ class ReelDownloader:
             self.log(f"⚠️ Compress error: {e}")
 
     def _extract_audio(self, video_filename, shortcode):
-        """Extract audio from video as MP3"""
         try:
             ffmpeg_path = shutil.which("ffmpeg")
             if not ffmpeg_path:
@@ -855,7 +803,6 @@ class ReelDownloader:
             self.log(f"⚠️ Audio error: {e}")
 
     def _get_organized_path(self, shortcode, media_type):
-        """Get organized folder path based on settings"""
         org = self.folder_org_var.get()
         base = self.download_path
         
@@ -865,13 +812,11 @@ class ReelDownloader:
         elif org == "by-type":
             return os.path.join(base, media_type)
         elif org == "by-user":
-            # This would require extracting username from post
             return os.path.join(base, "posts")
-        else:  # flat
+        else:
             return base
 
     def user_dialog(self):
-        """Download user reels with filters"""
         win = tk.Toplevel(self.root)
         win.title("Batch Download User Reels")
         win.geometry("500x400")
@@ -889,7 +834,6 @@ class ReelDownloader:
         count_var = tk.StringVar(value="10")
         ttk.Entry(frame, textvariable=count_var, width=10, font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 15))
 
-        # Filters section
         ttk.Label(frame, text="Filters:", font=("Segoe UI", 11, "bold")).pack(anchor="w")
 
         filter_frame = ttk.Frame(frame)
@@ -933,7 +877,6 @@ class ReelDownloader:
             profile = instaloader.Profile.from_username(self.loader.context, user)
             posts = [p for p in profile.get_posts()]
 
-            # Apply filters
             if videos_only:
                 posts = [p for p in posts if p.is_video]
             
@@ -959,7 +902,6 @@ class ReelDownloader:
             self.log(f"📁 Folder: {folder}")
 
     def show_stats(self):
-        """Show download statistics"""
         win = tk.Toplevel(self.root)
         win.title("Download Statistics")
         win.geometry("450x300")
@@ -1005,7 +947,6 @@ History Entries: {len(self.history.history)}
         ttk.Button(button_frame, text="🗑️ Clear History", command=clear_data).pack(side=tk.LEFT, padx=5)
 
     def filter_logs(self):
-        """Filter and search logs"""
         win = tk.Toplevel(self.root)
         win.title("Search Logs")
         win.geometry("400x250")
@@ -1044,13 +985,11 @@ History Entries: {len(self.history.history)}
         ttk.Button(frame, text="🔍 Search", command=search).pack(pady=10)
 
     def show_notification(self, title, message):
-        """Show system notification"""
         try:
             import subprocess
             subprocess.Popen([
                 "powershell", "-Command",
                 f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; '
-                f'$template = @"'
                 f'<toast><visual><binding template="ToastText02"><text id="1">{title}</text><text id="2">{message}</text></binding></visual></toast>"@; '
                 f'[Windows.UI.Notifications.ToastNotification]::new([xml]$template).Tag = "RDE"; '
                 f'[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("RDE").Show([Windows.UI.Notifications.ToastNotification]::new([xml]$template))'
@@ -1073,8 +1012,7 @@ History Entries: {len(self.history.history)}
 
         ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=15)
 
-        features_text = """
-Note from the dev:
+        features_text = """Note from the dev:
 This is a UNSTABLE build of RDE (Codename 'Klondike')
 This version has new features and changes that are still being tested.
 
@@ -1094,6 +1032,5 @@ if __name__ == "__main__":
     app = ReelDownloader(root)
     root.mainloop()
     
-    # Save queue on exit
     if app.queue:
         app.save_queue_backup()
